@@ -14,13 +14,19 @@ max_num_epoch = 50
 kernel_size = 5
 padding = kernel_size//2
 hps = {'lr':0.001}
+lr_list = [0.1, 0.001, 0.0001]
+number_of_kernel_list = [2, 4, 8]
+kernel_size_list = [3, 5]
+
+early_stop_n = 5
+out_channel_number = 4
 
 # ---- options ----
 DEVICE_ID = 'cpu' # set to 'cpu' for cpu, 'cuda' / 'cuda:0' or similar for gpu.
 LOG_DIR = 'checkpoints'
 VISUALIZE = False # set True to visualize input, prediction and the output from the last batch
 LOAD_CHKPT = False
-EARLY_STOP = False
+EARLY_STOP = True
 
 # --- imports ---
 import torch
@@ -38,7 +44,7 @@ torch.multiprocessing.set_start_method('spawn', force=True)
 
 def loss_checking(arr):
     if len(arr) >= 3 :
-        if arr[len(arr)-2] - arr[len(arr)-1] <= 0.05 : # 0.05i salladım ..
+        if arr[-1] - arr[-2] <= 0.05 : # 0.05i salladım ..
             res = 0
         else:
             res = 1
@@ -70,8 +76,8 @@ class Net(nn.Module):
 class Net2(nn.Module):
     def __init__(self) -> None:
         super(Net2, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size, padding=padding)
-        self.conv2 = nn.Conv2d(32, 3, kernel_size, padding=padding)
+        self.conv1 = nn.Conv2d(1, out_channel_number, kernel_size, padding=padding)
+        self.conv2 = nn.Conv2d(out_channel_number, 3, kernel_size, padding=padding)
 
     def forward(self, grayscale_image):
         x = self.conv1(grayscale_image)
@@ -82,10 +88,10 @@ class Net2(nn.Module):
 class Net4(nn.Module):
     def __init__(self) -> None:
         super(Net2, self).__init__()
-        self.conv1 = nn.Conv2d(1, 3, kernel_size, padding=padding)
-        self.conv2 = nn.Conv2d(3, 3, kernel_size, padding=padding)
-        self.conv3 = nn.Conv2d(3, 3, kernel_size, padding=padding)
-        self.conv4 = nn.Conv2d(3, 3, kernel_size, padding=padding)
+        self.conv1 = nn.Conv2d(1, out_channel_number, kernel_size, padding=padding)
+        self.conv2 = nn.Conv2d(out_channel_number, out_channel_number, kernel_size, padding=padding)
+        self.conv3 = nn.Conv2d(out_channel_number, out_channel_number, kernel_size, padding=padding)
+        self.conv4 = nn.Conv2d(out_channel_number, 3, kernel_size, padding=padding)
 
     def forward(self, grayscale_image):
         x = self.conv1(grayscale_image)
@@ -145,6 +151,8 @@ for epoch in range(max_num_epoch):
             loss = criterion(preds, targets)
             val_loss += loss.item()
         validation_losses.append(val_loss)
+        print('[%d, %5d] validation-loss: %.6f' %
+                  (epoch + 1, iteri + 1, val_loss / 100))
         if loss_checking(validation_losses) == 0:
             break
 
