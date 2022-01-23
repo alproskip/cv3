@@ -48,8 +48,7 @@ def visualize_batch(inputs,preds,targets,save_path=''):
     inputs = inputs.cpu()
     preds = preds.cpu()
     targets = targets.cpu()
-    print(inputs)
-    print(preds)
+
     plt.clf()
     bs = inputs.shape[0]
     for j in range(bs):
