@@ -10,7 +10,7 @@
 # (ii) by tuning it on the validation set, using the techniques discussed in class.
 # You definitely can add more hyper-parameters here.
 batch_size = 16
-max_num_epoch = 50
+max_num_epoch = 100
 kernel_size = 5
 padding = kernel_size//2
 hps = {'lr':0.001}
@@ -19,7 +19,7 @@ number_of_kernel_list = [2, 4, 8]
 kernel_size_list = [3, 5]
 
 early_stop_n = 5
-out_channel_number = 4
+out_channel_number = 8
 
 # ---- options ----
 DEVICE_ID = 'cpu' # set to 'cpu' for cpu, 'cuda' / 'cuda:0' or similar for gpu.
@@ -29,6 +29,7 @@ LOAD_CHKPT = False
 EARLY_STOP = True
 
 # --- imports ---
+import random
 import torch
 import os
 import matplotlib.pyplot as plt
@@ -44,13 +45,29 @@ torch.multiprocessing.set_start_method('spawn', force=True)
 
 def loss_checking(arr):
     if len(arr) >= 3 :
-        if arr[-1] - arr[-2] <= 0.05 : # 0.05i salladım ..
+        if arr[-2] - arr[-1] <= 0.05 :
             res = 0
         else:
             res = 1
     else:
         res = 1
-    return(res)
+    return res
+
+def get_test_set():
+    data_root = 'ceng483-s19-hw3-dataset'
+    test_set = hw3utils.HW3ImageFolder(root=data_root,device=device)
+    test_set_paths = []
+    for img_name, i in test_set.imgs:
+        if 'test_inputs' in str(img_name):
+            path = img_name
+            test_set_paths.append(path)
+    selected_paths = random.sample(test_set_paths, 100)
+    with open('test_images.txt', 'a') as myfile:
+        myfile.truncate(0)
+        for path in selected_paths:
+            myfile.write(path)
+            myfile.write("\n")
+
 
 # ---- utility functions -----
 def get_loaders(batch_size,device):
@@ -78,16 +95,19 @@ class Net2(nn.Module):
         super(Net2, self).__init__()
         self.conv1 = nn.Conv2d(1, out_channel_number, kernel_size, padding=padding)
         self.conv2 = nn.Conv2d(out_channel_number, 3, kernel_size, padding=padding)
+        self.bn1 = nn.BatchNorm2d(out_channel_number)
+
 
     def forward(self, grayscale_image):
         x = self.conv1(grayscale_image)
         x = F.relu(x)
         x = self.conv2(x)
+        x = torch.tanh(x)
         return x
 
 class Net4(nn.Module):
     def __init__(self) -> None:
-        super(Net2, self).__init__()
+        super(Net4, self).__init__()
         self.conv1 = nn.Conv2d(1, out_channel_number, kernel_size, padding=padding)
         self.conv2 = nn.Conv2d(out_channel_number, out_channel_number, kernel_size, padding=padding)
         self.conv3 = nn.Conv2d(out_channel_number, out_channel_number, kernel_size, padding=padding)
@@ -111,9 +131,11 @@ criterion = nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=hps['lr'])
 train_loader, val_loader = get_loaders(batch_size,device)
 
-# if LOAD_CHKPT:
-#     print('loading the model from the checkpoint')
-    # model.load_state_dict(os.path.join(LOG_DIR,'checkpoint.pt'))
+# get_test_set()
+
+if LOAD_CHKPT:
+    print('loading the model from the checkpoint')
+    net.load_state_dict(os.path.join(LOG_DIR,'checkpoint.pt'))
 
 print('training begins')
 validation_losses = []
@@ -145,14 +167,17 @@ for epoch in range(max_num_epoch):
 
     if EARLY_STOP:
         val_loss = 0
+        count = 0
         for iteri, data in enumerate(val_loader, 0):
             inputs, targets = data
             preds = net(inputs)
             loss = criterion(preds, targets)
             val_loss += loss.item()
+            count += 1
         validation_losses.append(val_loss)
         print('[%d, %5d] validation-loss: %.6f' %
-                  (epoch + 1, iteri + 1, val_loss / 100))
+                  (epoch + 1, iteri + 1, val_loss / count))
+
         if loss_checking(validation_losses) == 0:
             break
 
