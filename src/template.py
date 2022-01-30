@@ -14,10 +14,6 @@ max_num_epoch = 100
 kernel_size = 3
 padding = kernel_size//2
 hps = {'lr':0.1}
-# lr_list = [0.1, 0.001, 0.0001]
-# number_of_kernel_list = [2, 4, 8]
-# kernel_size_list = [3, 5]
-
 out_channel_number = 8
 
 # ---- options ----
@@ -40,10 +36,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 import hw3utils
-import math
-from PIL import Image
-from torch.utils.data import Dataset
-import torchvision
 import torchvision.transforms as transforms
 torch.multiprocessing.set_start_method('spawn', force=True)
 
@@ -63,7 +55,6 @@ def loss_checking(arr):
 # ---- utility functions -----
 def get_loaders(batch_size,device):
     data_root = 'ceng483-s19-hw3-dataset' 
-    #data_root = r'C:\Users\irema\Desktop\the3\ceng483-s19-hw3-dataset'
     train_set = hw3utils.HW3ImageFolder(root=os.path.join(data_root,'train'),device=device)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
     val_set = hw3utils.HW3ImageFolder(root=os.path.join(data_root,'val'),device=device)
@@ -137,7 +128,6 @@ if TRAIN:
             inputs, targets = data # inputs: low-resolution images, targets: high-resolution images.
             optimizer.zero_grad() # zero the parameter gradients
 
-
             # do forward, backward, SGD step
             preds = net(inputs)
             loss = criterion(preds, targets)
@@ -189,8 +179,6 @@ for i, data in enumerate(test_loader, 0):
     if i not in test_img_indexes:
         continue
     sample_paths.append(test_set.samples[i])
-    # print(i)
-    # print(test_set.samples[i])
     inputs, targets = data
     preds = net(inputs)
     predictions.append(preds[0].detach().numpy())
