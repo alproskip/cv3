@@ -172,9 +172,6 @@ if TRAIN:
 sample_paths = []
 predictions = []
 test_img_indexes = random.sample(range(2000), 100)
-
-test_loss = 0
-count = 0
 for i, data in enumerate(test_loader, 0):
     if i not in test_img_indexes:
         continue
@@ -182,7 +179,6 @@ for i, data in enumerate(test_loader, 0):
     inputs, targets = data
     preds = net(inputs)
     predictions.append(preds[0].detach().numpy())
-    count += 1
 
 with open('img_names.txt', 'a') as myfile:
     myfile.truncate(0)
@@ -197,7 +193,6 @@ predictions = np.multiply(predictions, 255/2)
 
 with open('estimations.npy', 'wb') as f:
     np.save(f, predictions)
-
 
 # x = list(range(1, epoch+2))
 # plt.figure()
